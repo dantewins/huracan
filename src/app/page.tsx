@@ -3,7 +3,7 @@
 import * as React from "react"
 import { IconArrowUp, IconPlus } from "@tabler/icons-react"
 
-export default function Home() {
+export default function MainPage() {
   const [value, setValue] = React.useState("")
   const [count, setCount] = React.useState(0)
   const limit = 8000
@@ -18,19 +18,19 @@ export default function Home() {
   }, [value])
 
   React.useLayoutEffect(() => {
-  const el = textAreaRef.current
-  if (!el) return
+    const el = textAreaRef.current
+    if (!el) return
 
-  el.style.height = "auto"
-  const scrollH = el.scrollHeight // includes padding
-  const next = Math.max(MIN_HEIGHT, Math.min(scrollH, MAX_HEIGHT))
-  el.style.height = `${next}px`
-  el.style.overflowY = scrollH > MAX_HEIGHT ? "auto" : "hidden"
-}, [value])
+    el.style.height = "auto"
+    const scrollH = el.scrollHeight
+    const next = Math.max(MIN_HEIGHT, Math.min(scrollH, MAX_HEIGHT))
+    el.style.height = `${next}px`
+    el.style.overflowY = scrollH > MAX_HEIGHT ? "auto" : "hidden"
+  }, [value])
 
   return (
-    <div className="flex h-[85vh] items-center justify-center bg-white p-4">
-      <div className="w-full max-w-2xl">
+    <div className="flex h-[calc(100dvh-var(--header-height))] items-center justify-center bg-white px-8">
+      <div className="w-full max-w-2xl py-4">
         <div>
           <h1 className="text-3xl text-center mb-10">Where should we begin?</h1>
         </div>
@@ -56,13 +56,13 @@ export default function Home() {
               />
             </div>
             <div className="flex items-center justify-between px-5 pb-4 pt-1">
-                <button type="button" className="h-9 w-9 hover:cursor-pointer">
-                  <IconPlus className="!h-5 !w-5 text-black" />
-                </button>
-                <button type="button" className="h-9 w-9 inline-flex items-center justify-center border border-black bg-black hover:cursor-pointer">
-                  <IconArrowUp className="!h-5 !w-5 text-white" />
-                </button>
-              </div>
+              <button type="button" className="h-9 w-9 hover:cursor-pointer">
+                <IconPlus className="!h-5 !w-5 text-black" />
+              </button>
+              <button type="button" className="h-9 w-9 inline-flex items-center justify-center border border-black bg-black hover:cursor-pointer">
+                <IconArrowUp className="!h-5 !w-5 text-white" />
+              </button>
+            </div>
           </div>
         </div>
       </div>

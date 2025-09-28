@@ -35,56 +35,56 @@ export function NavMain() {
             "owner": "dantewins",
             "repo": "swordle",
             "timestamp": "1753151925642",
-            "path": "/expounder/readme`user_2zllyuuuwq327ood98no3vxv72u`dantewins`swordle`1753151925642.md",
+            "path": "/c/readme`user_2zllyuuuwq327ood98no3vxv72u`dantewins`swordle`1753151925642.md",
             "name": "README`user_2zLLyUuuWq327OOd98no3vXv72U`dantewins`swordle`1753151925642.md"
         },
         {
             "owner": "dantewins",
             "repo": "expounder",
             "timestamp": "1753155464041",
-            "path": "/expounder/readme`user_2zllyuuuwq327ood98no3vxv72u`dantewins`expounder`1753155464041.md",
+            "path": "/c/readme`user_2zllyuuuwq327ood98no3vxv72u`dantewins`expounder`1753155464041.md",
             "name": "README`user_2zLLyUuuWq327OOd98no3vXv72U`dantewins`expounder`1753155464041.md"
         },
         {
             "owner": "dantewins",
             "repo": "capstone",
             "timestamp": "1753156136995",
-            "path": "/expounder/readme`user_2zllyuuuwq327ood98no3vxv72u`dantewins`capstone`1753156136995.md",
+            "path": "/c/readme`user_2zllyuuuwq327ood98no3vxv72u`dantewins`capstone`1753156136995.md",
             "name": "README`user_2zLLyUuuWq327OOd98no3vXv72U`dantewins`capstone`1753156136995.md"
         },
         {
             "owner": "dantewins",
             "repo": "swordle",
             "timestamp": "1753295102438",
-            "path": "/expounder/readme`user_2zllyuuuwq327ood98no3vxv72u`dantewins`swordle`1753295102438.md",
+            "path": "/c/readme`user_2zllyuuuwq327ood98no3vxv72u`dantewins`swordle`1753295102438.md",
             "name": "README`user_2zLLyUuuWq327OOd98no3vXv72U`dantewins`swordle`1753295102438.md"
         },
         {
             "owner": "dantewins",
             "repo": "swordle",
             "timestamp": "1753414619120",
-            "path": "/expounder/readme`user_2zllyuuuwq327ood98no3vxv72u`dantewins`swordle`1753414619120.md",
+            "path": "/c/readme`user_2zllyuuuwq327ood98no3vxv72u`dantewins`swordle`1753414619120.md",
             "name": "README`user_2zLLyUuuWq327OOd98no3vXv72U`dantewins`swordle`1753414619120.md"
         },
         {
             "owner": "dantewins",
             "repo": "swordle",
             "timestamp": "1753415402341",
-            "path": "/expounder/readme`user_2zllyuuuwq327ood98no3vxv72u`dantewins`swordle`1753415402341.md",
+            "path": "/c/readme`user_2zllyuuuwq327ood98no3vxv72u`dantewins`swordle`1753415402341.md",
             "name": "README`user_2zLLyUuuWq327OOd98no3vXv72U`dantewins`swordle`1753415402341.md"
         },
         {
             "owner": "dantewins",
             "repo": "swordle",
             "timestamp": "1753574092336",
-            "path": "/expounder/readme`user_2zllyuuuwq327ood98no3vxv72u`dantewins`swordle`1753574092336.md",
+            "path": "/c/234234",
             "name": "README`user_2zLLyUuuWq327OOd98no3vXv72U`dantewins`swordle`1753574092336.md"
         },
         {
             "owner": "dantewins",
             "repo": "bunni",
             "timestamp": "1754618945546",
-            "path": "/expounder/readme`user_2zllyuuuwq327ood98no3vxv72u`dantewins`bunni`1754618945546.md",
+            "path": "/c/readme`user_2zllyuuuwq327ood98no3vxv72u`dantewins`bunni`1754618945546.md",
             "name": "README`user_2zLLyUuuWq327OOd98no3vXv72U`dantewins`bunni`1754618945546.md"
         }
     ]
@@ -120,7 +120,7 @@ export function NavMain() {
                             className={clsx(
                                 "flex w-full items-center justify-center gap-2 bg-stone-950 text-white hover:text-white hover:bg-neutral-900 transition-colors rounded-none",
                             )}
-                            onClick={() => router.push("/dashboard/expounds")}
+                            onClick={() => router.push("/")}
                         >
                             <IconPlus className="size-4" />
                             <span>Add</span>
@@ -130,7 +130,7 @@ export function NavMain() {
                     <SidebarGroupLabel>Your chats</SidebarGroupLabel>
 
                     {readmes.map((item) => {
-                        const uri = `/dashboard/expounds/file?owner=${encodeURIComponent(item.owner)}&repo=${encodeURIComponent(item.repo)}&timestamp=${encodeURIComponent(item.timestamp)}`;
+                        const uri = `/c/1`;
 
                         const isActive =
                             pathname === "/dashboard/expounds/file" &&
