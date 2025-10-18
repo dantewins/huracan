@@ -23,7 +23,7 @@ export default function ChatPage() {
     const messagesEndRef = React.useRef<HTMLDivElement | null>(null)
 
     const MIN_HEIGHT = 36
-    const MAX_HEIGHT = 240
+    const MAX_HEIGHT = 200
 
     React.useEffect(() => {
         setCount(value.length)
@@ -67,7 +67,7 @@ export default function ChatPage() {
     return (
         <div className="flex flex-col h-[calc(100dvh-var(--header-height))] bg-white">
             <div className="flex-1 overflow-y-auto pb-8 pt-24">
-                <div className="w-full max-w-4xl mx-auto">
+                <div className="w-full max-w-3xl mx-auto">
                     {messages.map((msg, index) => (
                         <div
                             key={index}
@@ -75,7 +75,7 @@ export default function ChatPage() {
                         >
                             <div
                                 className={`max-w-[80%] ${msg.role === "user"
-                                        ? "p-4 rounded-full bg-gray-100 text-black"
+                                        ? "p-4 bg-gray-100 text-black"
                                         : "text-zinc-900"
                                     }`}
                             >
@@ -88,7 +88,7 @@ export default function ChatPage() {
             </div>
 
             <div className="px-8 my-4 bg-white">
-                <div className="w-full max-w-2xl mx-auto">
+                <div className="w-full max-w-3xl mx-auto">
                     <div className="relative group p-px bg-gradient-to-r from-sky-500/40 via-blue-500/40 to-fuchsia-500/40">
                         <div className="absolute inset-0 blur-xl opacity-0 group-focus-within:opacity-100 group-hover:opacity-100 transition-opacity duration-300 bg-gradient-to-r from-sky-500/20 via-blue-500/20 to-fuchsia-500/20" />
                         <div className="relative bg-white backdrop-blur-xl ring-1 ring-black/10 shadow-lg">
