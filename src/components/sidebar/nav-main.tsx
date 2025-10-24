@@ -127,7 +127,7 @@ export function NavMain() {
                         </SidebarMenuButton>
                     </SidebarMenuItem>
 
-                    <SidebarGroupLabel>Your chats</SidebarGroupLabel>
+                    <SidebarGroupLabel>Your inspections</SidebarGroupLabel>
 
                     {readmes.map((item) => {
                         const uri = `/c/1`;

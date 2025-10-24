@@ -1,12 +1,18 @@
 "use client"
 
-import { Button } from "@/components/ui/button"
+import { useState } from "react"
 import { Separator } from "@/components/ui/separator"
 import { SidebarTrigger } from "@/components/ui/sidebar"
 import { usePathname } from "next/navigation"
+import LoginForm from "@/components/auth/LoginForm"
+import SignupForm from "@/components/auth/SignupForm"
+import { useAuth } from "@/context/AuthContext"
 
 export function SiteHeader() {
     const pathname = usePathname()
+    const [isLoginOpen, setIsLoginOpen] = useState(false)
+    const [isSignupOpen, setIsSignupOpen] = useState(false)
+    const { user, logout } = useAuth()
 
     return (
         <header className="flex h-(--header-height) shrink-0 items-center gap-2 border-b transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-(--header-height)">
@@ -18,12 +24,18 @@ export function SiteHeader() {
                 />
                 <h1 className="text-base font-medium">{pathname.slice(11) ? pathname!.slice(11).replace(/^./, c => c.toUpperCase()) : 'Dashboard'}</h1>
                 <div className="ml-auto flex items-center gap-3">
-                    <Button variant="outline" asChild size="sm" className="hidden sm:flex">
-                        <a href="#">Login</a>
-                    </Button>
-                    <Button variant="default" asChild size="sm" className="hidden sm:flex">
-                        <a href="#">Sign up</a>
-                    </Button>
+                    {!user && (
+                        <>
+                            <LoginForm
+                                open={isLoginOpen}
+                                onOpenChange={setIsLoginOpen}
+                            />
+                            <SignupForm
+                                open={isSignupOpen}
+                                onOpenChange={setIsSignupOpen}
+                            />
+                        </>
+                    )}
                 </div>
             </div>
         </header>
