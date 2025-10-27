@@ -1,71 +1,223 @@
 "use client"
 
-import * as React from "react"
-import { IconArrowUp, IconPlus } from "@tabler/icons-react"
+import * as React from "react";
+import { ChatContainer } from "@/components/chat/ChatContainer";
+import { ScrollArea } from "@/components/chat/ScrollArea";
+import { MessageList } from "@/components/chat/MessageList";
+import { SendingIndicator } from "@/components/chat/SendingIndicator";
+import { InputGroupWrapper } from "@/components/chat/InputGroupWrapper";
+import { InputGroup } from "@/components/chat/InputGroup";
+import { Disclaimer } from "@/components/chat/Disclaimer";
+import { ImageModal } from "@/components/chat/ImageModal";
+import { Message, ImageItem } from "@/types/message";
+import { useAuth } from "@/context/AuthContext";
+import { useRouter, usePathname } from "next/navigation";
+import { toast } from "sonner";
+import { v4 as uuidv4 } from "uuid";
 
-export default function MainPage() {
-  const [value, setValue] = React.useState("")
-  const [count, setCount] = React.useState(0)
-  const limit = 8000
+interface LocalMessage extends Message {
+  pending?: boolean;
+  error?: string;
+  tempId?: string;
+}
 
-  const textAreaRef = React.useRef<HTMLTextAreaElement | null>(null)
+export default function SlugPage() {
+  const { user, loading: authLoading } = useAuth();
+  const router = useRouter();
+  const pathname = usePathname();
+  const idFromUrl = pathname.split("/").pop() || null;
+  const [messages, setMessages] = React.useState<LocalMessage[]>([]);
+  const [value, setValue] = React.useState("");
+  const [isSending, setIsSending] = React.useState(false);
+  const [isThinking, setIsThinking] = React.useState(false);
+  const [images, setImages] = React.useState<ImageItem[]>([]);
+  const [selectedImage, setSelectedImage] = React.useState<string | null>(null);
+  const [isAtBottom, setIsAtBottom] = React.useState(true);
+  const [inspectionId, setInspectionId] = React.useState<string | null>(idFromUrl);
 
-  const MIN_HEIGHT = 36
-  const MAX_HEIGHT = 240
+  const isInitial = messages.length === 0;
+  const effectiveInitial = authLoading || (isInitial && !inspectionId);
 
   React.useEffect(() => {
-    setCount(value.length)
-  }, [value])
+    const handlePopstate = () => {
+      const newPath = window.location.pathname;
+      const newId = newPath.split('/').pop();
+      if (newPath.startsWith('/c/') && newId) {
+        setInspectionId(newId);
+        fetchMessages(newId);
+      } else {
+        setInspectionId(null);
+        setMessages([]);
+        setValue("");
+        setImages([]);
+      }
+    };
 
-  React.useLayoutEffect(() => {
-    const el = textAreaRef.current
-    if (!el) return
+    window.addEventListener('popstate', handlePopstate);
+    return () => window.removeEventListener('popstate', handlePopstate);
+  }, []);
 
-    el.style.height = "auto"
-    const scrollH = el.scrollHeight
-    const next = Math.max(MIN_HEIGHT, Math.min(scrollH, MAX_HEIGHT))
-    el.style.height = `${next}px`
-    el.style.overflowY = scrollH > MAX_HEIGHT ? "auto" : "hidden"
-  }, [value])
+  // Fetch messages if inspectionId and user are available
+  React.useEffect(() => {
+    if (inspectionId && user) {
+      fetchMessages(inspectionId);
+    }
+  }, [user, inspectionId]);
+
+  const fetchMessages = async (id: string) => {
+    try {
+      const res = await fetch(`/api/chat/messages?inspectionId=${id}`);
+      if (res.ok) {
+        const data = await res.json();
+        setMessages(data);
+      } else {
+        toast.error(`No chat with that inspection id found`);
+        router.push('/');
+      }
+    } catch (error) {
+      toast.error("Error loading messages");
+      router.push('/');
+    }
+  };
+
+  const handleSend = async () => {
+    if (value.trim() === "" && images.length === 0 || isSending || authLoading) return;
+
+    const tempId = uuidv4();
+    const imageUrls = images
+      .filter((item) => !item.isUploading && !item.error)
+      .map((item) => item.previewUrl);
+
+    const optimisticMessage: LocalMessage = {
+      id: tempId,
+      tempId,
+      role: "user",
+      content: value,
+      images: imageUrls,
+      createdAt: new Date(),
+      pending: true,
+    };
+    setMessages((prev) => [...prev, optimisticMessage]);
+    setValue("");
+    setImages([]);
+    setIsSending(true);
+
+    let currentId = inspectionId;
+
+    try {
+      if (!currentId) {
+        // Create a new chat if no inspection ID exists
+        const res = await fetch("/api/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ title: value.slice(0, 50) || "New Chat" }),
+        });
+        if (res.ok) {
+          const { id } = await res.json();
+          currentId = id;
+          setInspectionId(id);
+        } else {
+          throw new Error("Failed to create inspection");
+        }
+      }
+
+      const res = await fetch(`/api/chat/messages`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          inspectionId: currentId,
+          role: "user",
+          content: value,
+          images: imageUrls,
+        }),
+      });
+
+      if (res.ok) {
+        const newUserMessage = await res.json();
+        // Update the optimistic message with real data
+        setMessages((prev) =>
+          prev.map((msg) =>
+            msg.tempId === tempId ? { ...newUserMessage, pending: false } : msg
+          )
+        );
+
+        setIsThinking(true);
+
+        // Simulate AI response (echoing the user message)
+        const aiContent = `Echo: ${value} with ${imageUrls.length} images`;
+
+        const aiRes = await fetch(`/api/chat/messages`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            inspectionId: currentId,
+            role: "assistant",
+            content: aiContent,
+            images: [],
+          }),
+        });
+
+        if (aiRes.ok) {
+          const newAiMessage = await aiRes.json();
+          setMessages((prev) => [...prev, newAiMessage]);
+        } else {
+          throw new Error("Failed to save AI response");
+        }
+      } else {
+        throw new Error("Failed to send message");
+      }
+    } catch (error: any) {
+      setMessages((prev) =>
+        prev.map((msg) =>
+          msg.tempId === tempId ? { ...msg, pending: false, error: error.message } : msg
+        )
+      );
+      toast.error(error.message || "Error sending message");
+    } finally {
+      setIsSending(false);
+      setIsThinking(false);
+      if (!inspectionId && currentId) {
+        router.push(`/c/${currentId}`);
+      }
+    }
+  };
 
   return (
-    <div className="flex h-[calc(100dvh-var(--header-height))] items-center justify-center bg-white px-8">
-      <div className="w-full max-w-2xl py-4">
-        <div>
-          <h1 className="text-3xl text-center mb-10">Where should we begin?</h1>
-        </div>
-        <div className="relative group p-px bg-gradient-to-r from-sky-500/40 via-blue-500/40 to-fuchsia-500/40">
-          <div className="absolute inset-0 blur-xl opacity-0 group-focus-within:opacity-100 group-hover:opacity-100 transition-opacity duration-300 bg-gradient-to-r from-sky-500/20 via-blue-500/20 to-fuchsia-500/20" />
-          <div className="relative bg-white backdrop-blur-xl ring-1 ring-black/10 shadow-lg">
-            <div className="relative">
-              <textarea
-                ref={textAreaRef}
-                value={value}
-                onChange={(e) => setValue(e.target.value)}
-                placeholder="Ask anything"
-                className={[
-                  "w-full pt-4 pb-2 px-5 rounded-[1rem]",
-                  "resize-none bg-transparent border-0 outline-none shadow-none",
-                  "text-base text-zinc-900 placeholder-zinc-500 leading-6",
-                  "transition-[height] duration-150 ease-out will-change-[height]",
-                  "shadow-[inset_0_1px_0_0_rgba(0,0,0,0.04)]",
-                ].join(" ")}
-                style={{
-                  maxHeight: MAX_HEIGHT,
-                }}
-              />
-            </div>
-            <div className="flex items-center justify-between px-5 pb-4 pt-1">
-              <button type="button" className="h-9 w-9 hover:cursor-pointer">
-                <IconPlus className="!h-5 !w-5 text-black" />
-              </button>
-              <button type="button" className="h-9 w-9 inline-flex items-center justify-center border border-black bg-black hover:cursor-pointer">
-                <IconArrowUp className="!h-5 !w-5 text-white" />
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  )
+    <ChatContainer isInitial={effectiveInitial}>
+      <ScrollArea
+        isInitial={effectiveInitial}
+        messages={authLoading ? [] : messages}
+        setIsAtBottom={setIsAtBottom}
+      >
+        {!authLoading && (
+          <>
+            <MessageList
+              messages={messages}
+              setSelectedImage={setSelectedImage}
+            />
+            <SendingIndicator isSending={isThinking} />
+          </>
+        )}
+      </ScrollArea>
+      {!effectiveInitial && (
+        <InputGroupWrapper isInitial={effectiveInitial}>
+          <InputGroup
+            value={value}
+            setValue={setValue}
+            images={images}
+            setImages={setImages}
+            handleSend={handleSend}
+            isSending={isSending}
+            setSelectedImage={setSelectedImage}
+            isAtBottom={isAtBottom}
+          />
+        </InputGroupWrapper>
+      )}
+      <Disclaimer isInitial={effectiveInitial} />
+      <ImageModal
+        selectedImage={selectedImage}
+        setSelectedImage={setSelectedImage}
+      />
+    </ChatContainer>
+  );
 }

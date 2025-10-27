@@ -160,6 +160,7 @@ export function NavMain() {
                                         </DropdownMenuTrigger>
                                         <DropdownMenuContent align="end">
                                             <DropdownMenuItem
+                                                className="!text-red-600 hover:cursor-pointer"
                                                 onClick={(e) => {
                                                     e.stopPropagation();
                                                     handleDelete(
@@ -169,7 +170,7 @@ export function NavMain() {
                                                     );
                                                 }}
                                             >
-                                                <IconTrash className="mr-0.5 size-4" />
+                                                <IconTrash className="mr-0.5 size-4" color="red" />
                                                 Delete
                                             </DropdownMenuItem>
                                         </DropdownMenuContent>

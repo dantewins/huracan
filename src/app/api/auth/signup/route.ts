@@ -1,11 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
-import bcrypt from 'bcryptjs';
-import { cookies } from 'next/headers';
-import crypto from 'crypto';
+import { hashPassword, createSession } from '@/lib/auth';
+import prisma from '@/lib/prisma';
 
 export async function POST(req: NextRequest) {
-    const cookieStore = cookies();
     const { name, email, password } = await req.json();
 
     if (!name || !email || !password) {
@@ -18,29 +15,13 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: 'User already exists' }, { status: 409 });
     }
 
-    const hashedPassword = bcrypt.hashSync(password, 10);
+    const hashedPassword = await hashPassword(password);
 
     const user = await prisma.user.create({
         data: { name, email, password: hashedPassword },
     });
 
-    const sessionId = crypto.randomUUID();
-    const expires = new Date(Date.now() + 24 * 60 * 60 * 1000);
-
-    await prisma.session.create({
-        data: {
-            id: sessionId,
-            userId: user.id,
-            expires,
-        },
-    });
-
-    (await cookieStore).set('sessionId', sessionId, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        maxAge: 24 * 60 * 60,
-        path: '/',
-    });
+    await createSession(user.id);
 
     return NextResponse.json({ message: 'Signed up' });
 }

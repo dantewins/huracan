@@ -1,6 +1,5 @@
 "use client"
 
-
 import { IconChevronDown, IconLogout } from "@tabler/icons-react"
 import { Avatar, AvatarImage } from "@/components/ui/avatar"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
@@ -8,9 +7,10 @@ import { SidebarMenu, SidebarMenuButton, useSidebar, SidebarMenuItem } from "@/c
 import { useCallback, useState } from "react"
 import { clsx } from "clsx"
 import { useAuth } from "@/context/AuthContext"
+import { Skeleton } from "@/components/ui/skeleton"
 
 export function NavUser() {
-    const { user, logout } = useAuth()
+    const { user, loading, logout } = useAuth()
     const { isMobile } = useSidebar();
 
     const handleSignOut = useCallback(() => {
@@ -19,7 +19,31 @@ export function NavUser() {
 
     const [open, setOpen] = useState(false);
 
-    return user && (
+    if (loading) {
+        return (
+            <SidebarMenu>
+                <SidebarMenuItem>
+                    <SidebarMenuButton
+                        size="lg"
+                        className="pointer-events-none" // Disable interactions during loading
+                    >
+                        <Skeleton className="h-8 w-8 rounded-lg" />
+                        <div className="grid flex-1 text-left text-sm leading-tight space-y-1">
+                            <Skeleton className="h-4 w-24" /> {/* Placeholder for name */}
+                            <Skeleton className="h-3 w-32" /> {/* Placeholder for email */}
+                        </div>
+                        <IconChevronDown className="ml-auto size-4" />
+                    </SidebarMenuButton>
+                </SidebarMenuItem>
+            </SidebarMenu>
+        )
+    }
+
+    if (!user) {
+        return null;
+    }
+
+    return (
         <SidebarMenu>
             <SidebarMenuItem>
                 <DropdownMenu open={open} onOpenChange={setOpen}>

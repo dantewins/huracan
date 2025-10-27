@@ -75,10 +75,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         await fetch('/api/auth/logout', { method: 'POST' });
     };
 
-    if (loading) {
-        return ''
-    }
-
     return (
         <AuthContext.Provider value={{ user, loading, login, signup, logout }}>
             {children}
