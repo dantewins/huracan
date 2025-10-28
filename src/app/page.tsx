@@ -35,6 +35,7 @@ export default function MainPage() {
   const [selectedImage, setSelectedImage] = React.useState<string | null>(null);
   const [isAtBottom, setIsAtBottom] = React.useState(true);
   const [inspectionId, setInspectionId] = React.useState<string | null>(null);
+  const abortControllerRef = React.useRef<AbortController | null>(null);
 
   const isInitial = messages.length === 0;
   const effectiveInitial = authLoading || isInitial;
@@ -87,6 +88,9 @@ export default function MainPage() {
     }
     if (value.trim() === "" && images.length === 0 || isSending || authLoading) return;
 
+    abortControllerRef.current = new AbortController();
+    const signal = abortControllerRef.current.signal;
+
     const tempId = uuidv4();
     const imageUrls = images
       .filter((item) => !item.isUploading && !item.error)
@@ -116,6 +120,7 @@ export default function MainPage() {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ title: 'New Chat' }),
+          signal,
         });
         if (res.ok) {
           const { id } = await res.json();
@@ -131,6 +136,7 @@ export default function MainPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ inspectionId: currentId, role: 'user', content: value, images: imageUrls }),
+        signal,
       });
 
       if (res.ok) {
@@ -146,6 +152,7 @@ export default function MainPage() {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ inspectionId: currentId }),
+          signal,
         });
 
         if (promptRes.ok) {
@@ -155,6 +162,7 @@ export default function MainPage() {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ inspectionId: currentId, role: 'assistant', content: aiContent, images: [] }),
+            signal,
           });
 
           if (aiRes.ok) {
@@ -167,16 +175,16 @@ export default function MainPage() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ inspectionId: currentId }),
               })
-              .then(async (titleRes) => {
-                if (!titleRes.ok) {
-                  throw new Error(await titleRes.text());
-                }
-                refresh(); // Refresh to update title in sidebar after successful update
-              })
-              .catch((error) => {
-                console.error('Failed to update title:', error);
-                toast.error('Failed to update chat title');
-              });
+                .then(async (titleRes) => {
+                  if (!titleRes.ok) {
+                    throw new Error(await titleRes.text());
+                  }
+                  refresh(); // Refresh to update title in sidebar after successful update
+                })
+                .catch((error) => {
+                  console.error('Failed to update title:', error);
+                  toast.error('Failed to update chat title');
+                });
             }
           } else {
             throw new Error('Failed to save AI response');
@@ -188,17 +196,27 @@ export default function MainPage() {
         throw new Error('Failed to send message');
       }
     } catch (error: any) {
-      setMessages(prev => prev.map(msg =>
-        msg.tempId === tempId ? { ...msg, pending: false, error: error.message } : msg
-      ));
-      toast.error(error.message || 'Error sending message');
+      if (error.name === 'AbortError') {
+        setMessages(prev => prev.filter(msg => msg.tempId !== tempId));
+      } else {
+        setMessages(prev => prev.map(msg =>
+          msg.tempId === tempId ? { ...msg, pending: false, error: error.message } : msg
+        ));
+        toast.error(error.message || 'Error sending message');
+      }
     } finally {
       setIsSending(false);
       setIsThinking(false);
-      console.log(currentId);
+      abortControllerRef.current = null;
       if (wasInitial && currentId) {
         window.history.pushState({}, '', `/c/${currentId}`);
       }
+    }
+  };
+
+  const handleCancel = () => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
     }
   };
 
@@ -227,6 +245,7 @@ export default function MainPage() {
               images={images}
               setImages={setImages}
               handleSend={handleSend}
+              handleCancel={handleCancel}
               isSending={isSending}
               setSelectedImage={setSelectedImage}
               isAtBottom={isAtBottom}
@@ -242,6 +261,7 @@ export default function MainPage() {
             images={images}
             setImages={setImages}
             handleSend={handleSend}
+            handleCancel={handleCancel}
             isSending={isSending}
             setSelectedImage={setSelectedImage}
             isAtBottom={isAtBottom}

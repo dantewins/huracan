@@ -17,6 +17,7 @@ interface InputGroupProps {
     images: ImageItem[];
     setImages: React.Dispatch<React.SetStateAction<ImageItem[]>>;
     handleSend: () => void;
+    handleCancel: () => void;
     isSending: boolean;
     setSelectedImage: (url: string | null) => void;
     isAtBottom?: boolean;
@@ -55,6 +56,7 @@ export function InputGroup({
     images,
     setImages,
     handleSend,
+    handleCancel,
     isSending,
     setSelectedImage,
     isAtBottom = true,
@@ -270,8 +272,8 @@ export function InputGroup({
                     />
                     <button
                         type="button"
-                        onClick={handleSend}
-                        disabled={isSending || authLoading || hasUploadingImages}
+                        onClick={isSending ? handleCancel : handleSend}
+                        disabled={authLoading || hasUploadingImages}
                         className={`h-9 w-9 inline-flex items-center justify-center ${isSending ? 'bg-gray-200' : 'bg-black'} hover:cursor-pointer`}
                     >
                         {authLoading ? (

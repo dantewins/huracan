@@ -34,6 +34,7 @@ export default function SlugPage() {
   const [selectedImage, setSelectedImage] = React.useState<string | null>(null);
   const [isAtBottom, setIsAtBottom] = React.useState(true);
   const [inspectionId, setInspectionId] = React.useState<string | null>(idFromUrl);
+  const abortControllerRef = React.useRef<AbortController | null>(null);
 
   const isInitial = messages.length === 0;
   const effectiveInitial = authLoading || (isInitial && !inspectionId);
@@ -103,6 +104,9 @@ export default function SlugPage() {
     }
     if (value.trim() === "" && images.length === 0 || isSending || authLoading) return;
 
+    abortControllerRef.current = new AbortController();
+    const signal = abortControllerRef.current.signal;
+
     const tempId = uuidv4();
     const imageUrls = images
       .filter((item) => !item.isUploading && !item.error)
@@ -134,6 +138,7 @@ export default function SlugPage() {
           content: value,
           images: imageUrls,
         }),
+        signal,
       });
 
       if (res.ok) {
@@ -151,6 +156,7 @@ export default function SlugPage() {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ inspectionId: currentId }),
+          signal,
         });
 
         if (promptRes.ok) {
@@ -160,6 +166,7 @@ export default function SlugPage() {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ inspectionId: currentId, role: 'assistant', content: aiContent, images: [] }),
+            signal,
           });
 
           if (aiRes.ok) {
@@ -175,15 +182,26 @@ export default function SlugPage() {
         throw new Error("Failed to send message");
       }
     } catch (error: any) {
-      setMessages((prev) =>
-        prev.map((msg) =>
-          msg.tempId === tempId ? { ...msg, pending: false, error: error.message } : msg
-        )
-      );
-      toast.error(error.message || "Error sending message");
+      if (error.name === 'AbortError') {
+        setMessages(prev => prev.filter(msg => msg.tempId !== tempId));
+      } else {
+        setMessages((prev) =>
+          prev.map((msg) =>
+            msg.tempId === tempId ? { ...msg, pending: false, error: error.message } : msg
+          )
+        );
+        toast.error(error.message || "Error sending message");
+      }
     } finally {
       setIsSending(false);
       setIsThinking(false);
+      abortControllerRef.current = null;
+    }
+  };
+
+  const handleCancel = () => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
     }
   };
 
@@ -212,6 +230,7 @@ export default function SlugPage() {
             images={images}
             setImages={setImages}
             handleSend={handleSend}
+            handleCancel={handleCancel}
             isSending={isSending}
             setSelectedImage={setSelectedImage}
             isAtBottom={isAtBottom}
