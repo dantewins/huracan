@@ -115,7 +115,7 @@ export default function MainPage() {
         const res = await fetch('/api/chat', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ title: value.slice(0, 50) || 'New Chat' }),
+          body: JSON.stringify({ title: 'New Chat' }),
         });
         if (res.ok) {
           const { id } = await res.json();
@@ -161,7 +161,22 @@ export default function MainPage() {
             const newAiMessage = await aiRes.json();
             setMessages(prev => [...prev, newAiMessage]);
             if (wasInitial) {
-              refresh(); // Refresh to update title in sidebar
+              // Update title with summary after first exchange in the background
+              fetch('/api/chat/title', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ inspectionId: currentId }),
+              })
+              .then(async (titleRes) => {
+                if (!titleRes.ok) {
+                  throw new Error(await titleRes.text());
+                }
+                refresh(); // Refresh to update title in sidebar after successful update
+              })
+              .catch((error) => {
+                console.error('Failed to update title:', error);
+                toast.error('Failed to update chat title');
+              });
             }
           } else {
             throw new Error('Failed to save AI response');

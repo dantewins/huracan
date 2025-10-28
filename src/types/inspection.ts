@@ -31,7 +31,7 @@ export interface Solution {
     description: string;
     estimated_cost?: string;
     estimated_time?: string;
-    resources_needed?: string[];
+    resources_needed: string[];
 }
 
 export interface FemaDisaster {

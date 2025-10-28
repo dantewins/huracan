@@ -118,7 +118,7 @@ export const geminiService = {
 
             const solution: Partial<Solution> = {
                 title: lines[0].replace(/^[:\-]\s*/, ''),
-                priority: 'medium' as const,
+                priority: 'medium',
                 description: '',
                 estimated_cost: undefined,
                 estimated_time: undefined,
@@ -143,11 +143,12 @@ export const geminiService = {
                 }
             }
 
-            if (solution.title) {
+            if (solution.title && solution.description) {
                 solutions.push(solution as Solution);
             }
         }
 
         return solutions;
     }
+
 };

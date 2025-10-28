@@ -1,65 +1,16 @@
 import React from 'react';
 import ReactMarkdown from 'react-markdown';
 import { Message } from '@/types/message';
+import { geminiService } from '@/lib/gemini';
 
 interface MessageListProps {
     messages: Message[];
     setSelectedImage: (url: string | null) => void;
 }
 
-interface Solution {
-    title: string;
-    priority: 'high' | 'medium' | 'low';
-    description: string;
-    estimated_cost?: string;
-    estimated_time?: string;
-    resources_needed: string[];
-}
-
-function parseSolutions(text: string): Solution[] {
-    const solutions: Solution[] = [];
-    const solutionBlocks = text.split(/SOLUTION:/i).filter(block => block.trim());
-
-    for (const block of solutionBlocks) {
-        const lines = block.split('\n').map(l => l.trim()).filter(l => l);
-        if (lines.length === 0) continue;
-
-        const solution: Partial<Solution> = {
-            title: lines[0].replace(/^[:\-]\s*/, ''),
-            priority: 'medium',
-            description: '',
-            estimated_cost: undefined,
-            estimated_time: undefined,
-            resources_needed: []
-        };
-
-        for (const line of lines.slice(1)) {
-            if (line.match(/^PRIORITY:/i)) {
-                const priority = line.replace(/^PRIORITY:/i, '').trim().toLowerCase();
-                if (priority.includes('high')) solution.priority = 'high';
-                else if (priority.includes('low')) solution.priority = 'low';
-                else solution.priority = 'medium';
-            } else if (line.match(/^DESCRIPTION:/i)) {
-                solution.description = line.replace(/^DESCRIPTION:/i, '').trim();
-            } else if (line.match(/^COST:/i)) {
-                solution.estimated_cost = line.replace(/^COST:/i, '').trim();
-            } else if (line.match(/^TIME:/i)) {
-                solution.estimated_time = line.replace(/^TIME:/i, '').trim();
-            } else if (line.match(/^RESOURCES:/i)) {
-                const resources = line.replace(/^RESOURCES:/i, '').trim();
-                solution.resources_needed = resources.split(',').map(r => r.trim()).filter(r => r);
-            }
-        }
-
-        if (solution.title && solution.description) {
-            solutions.push(solution as Solution);
-        }
-    }
-
-    return solutions;
-}
-
 export function MessageList({ messages, setSelectedImage }: MessageListProps) {
+    const { parseSolutions } = geminiService;
+
     return (
         <>
             {messages.map((msg, index) => {
