@@ -14,6 +14,12 @@ interface AuthContextType {
     login: (email: string, password: string) => Promise<void>;
     signup: (name: string, email: string, password: string) => Promise<void>;
     logout: () => Promise<void>;
+    isLoginOpen: boolean;
+    setIsLoginOpen: (open: boolean) => void;
+    isSignupOpen: boolean;
+    setIsSignupOpen: (open: boolean) => void;
+    openLogin: () => void;
+    openSignup: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -21,6 +27,8 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
     const [user, setUser] = useState<User | null>(null);
     const [loading, setLoading] = useState(true);
+    const [isLoginOpen, setIsLoginOpen] = useState(false);
+    const [isSignupOpen, setIsSignupOpen] = useState(false);
 
     const fetchUser = async () => {
         try {
@@ -75,8 +83,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         await fetch('/api/auth/logout', { method: 'POST' });
     };
 
+    const openLogin = () => setIsLoginOpen(true);
+    const openSignup = () => setIsSignupOpen(true);
+
     return (
-        <AuthContext.Provider value={{ user, loading, login, signup, logout }}>
+        <AuthContext.Provider value={{ user, loading, login, signup, logout, isLoginOpen, setIsLoginOpen, isSignupOpen, setIsSignupOpen, openLogin, openSignup }}>
             {children}
         </AuthContext.Provider>
     );

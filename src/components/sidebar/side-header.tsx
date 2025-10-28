@@ -1,6 +1,5 @@
 "use client"
 
-import { useState } from "react"
 import { Separator } from "@/components/ui/separator"
 import { SidebarTrigger } from "@/components/ui/sidebar"
 import { usePathname } from "next/navigation"
@@ -10,9 +9,7 @@ import { useAuth } from "@/context/AuthContext"
 
 export function SiteHeader() {
     const pathname = usePathname()
-    const [isLoginOpen, setIsLoginOpen] = useState(false)
-    const [isSignupOpen, setIsSignupOpen] = useState(false)
-    const { user, loading } = useAuth()
+    const { user, loading, isLoginOpen, setIsLoginOpen, isSignupOpen, setIsSignupOpen } = useAuth()
 
     return (
         <>

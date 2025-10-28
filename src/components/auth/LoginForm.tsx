@@ -41,7 +41,7 @@ export default function LoginForm({
         try {
             await login(values.email, values.password)
             loginForm.reset()
-            onOpenChange?.(false)
+            onOpenChange?.(false);
             toast.success("Logged in successfully")
         } catch (error: any) {
             toast.error(error.message || "Login failed")

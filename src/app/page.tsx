@@ -12,6 +12,7 @@ import { Disclaimer } from '@/components/chat/Disclaimer';
 import { ImageModal } from '@/components/chat/ImageModal';
 import { Message, ImageItem } from '@/types/message';
 import { useAuth } from "@/context/AuthContext";
+import { useChats } from '@/context/ChatContext';
 import { usePathname } from "next/navigation";
 import { toast } from "sonner";
 import { v4 as uuidv4 } from 'uuid';
@@ -23,7 +24,8 @@ interface LocalMessage extends Message {
 }
 
 export default function MainPage() {
-  const { user, loading: authLoading } = useAuth();
+  const { user, loading: authLoading, openSignup } = useAuth();
+  const { refresh } = useChats();
   const pathname = usePathname();
   const [messages, setMessages] = React.useState<LocalMessage[]>([]);
   const [value, setValue] = React.useState("");
@@ -79,6 +81,10 @@ export default function MainPage() {
   };
 
   const handleSend = async () => {
+    if (!user) {
+      openSignup();
+      return;
+    }
     if (value.trim() === "" && images.length === 0 || isSending || authLoading) return;
 
     const tempId = uuidv4();
@@ -114,6 +120,7 @@ export default function MainPage() {
         if (res.ok) {
           const { id } = await res.json();
           currentId = id;
+          refresh();
           setInspectionId(id);
         } else {
           throw new Error('Failed to create inspection');
@@ -135,19 +142,32 @@ export default function MainPage() {
 
         setIsThinking(true);
 
-        const aiContent = `Echo: ${value} with ${imageUrls.length} images`;
-
-        const aiRes = await fetch(`/api/chat/messages`, {
+        const promptRes = await fetch('/api/chat/prompt', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ inspectionId: currentId, role: 'assistant', content: aiContent, images: [] }),
+          body: JSON.stringify({ inspectionId: currentId }),
         });
 
-        if (aiRes.ok) {
-          const newAiMessage = await aiRes.json();
-          setMessages(prev => [...prev, newAiMessage]);
+        if (promptRes.ok) {
+          const { content: aiContent } = await promptRes.json();
+
+          const aiRes = await fetch(`/api/chat/messages`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ inspectionId: currentId, role: 'assistant', content: aiContent, images: [] }),
+          });
+
+          if (aiRes.ok) {
+            const newAiMessage = await aiRes.json();
+            setMessages(prev => [...prev, newAiMessage]);
+            if (wasInitial) {
+              refresh(); // Refresh to update title in sidebar
+            }
+          } else {
+            throw new Error('Failed to save AI response');
+          }
         } else {
-          throw new Error('Failed to save AI response');
+          throw new Error('Failed to generate AI response');
         }
       } else {
         throw new Error('Failed to send message');

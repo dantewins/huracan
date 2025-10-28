@@ -6,6 +6,7 @@ import { AppSidebar } from "@/components/sidebar/app-sidebar";
 import { SiteHeader } from "@/components/sidebar/side-header";
 import { Toaster } from "@/components/ui/sonner";
 import { AuthProvider } from "@/context/AuthContext";
+import { ChatProvider } from "@/context/ChatContext";
 
 const oxygen = Oxygen({
   subsets: ["latin"],
@@ -28,21 +29,23 @@ export default function RootLayout({
         className={`${oxygen.className} antialiased`}
       >
         <AuthProvider>
-          <SidebarProvider
-            style={
-              {
-                "--sidebar-width": "calc(var(--spacing) * 72)",
-                "--header-height": "calc(var(--spacing) * 12)",
-              } as React.CSSProperties
-            }
-          >
-            <AppSidebar variant="inset" />
-            <SidebarInset>
-              <SiteHeader />
-              {children}
-              <Toaster position="top-center" />
-            </SidebarInset>
-          </SidebarProvider>
+          <ChatProvider>
+            <SidebarProvider
+              style={
+                {
+                  "--sidebar-width": "calc(var(--spacing) * 72)",
+                  "--header-height": "calc(var(--spacing) * 12)",
+                } as React.CSSProperties
+              }
+            >
+              <AppSidebar variant="inset" />
+              <SidebarInset>
+                <SiteHeader />
+                {children}
+                <Toaster position="top-center" />
+              </SidebarInset>
+            </SidebarProvider>
+          </ChatProvider>
         </AuthProvider>
       </body>
     </html>

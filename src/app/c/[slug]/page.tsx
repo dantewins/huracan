@@ -22,7 +22,7 @@ interface LocalMessage extends Message {
 }
 
 export default function SlugPage() {
-  const { user, loading: authLoading } = useAuth();
+  const { user, loading: authLoading, openSignup } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
   const idFromUrl = pathname.split("/").pop() || null;
@@ -57,6 +57,22 @@ export default function SlugPage() {
     return () => window.removeEventListener('popstate', handlePopstate);
   }, []);
 
+  // Redirect if not authenticated
+  React.useEffect(() => {
+    if (!authLoading && !user && inspectionId) {
+      router.push('/');
+      openSignup();
+    }
+  }, [authLoading, user, inspectionId, router]);
+
+  // Redirect if no inspectionId
+  React.useEffect(() => {
+    if (!authLoading && inspectionId === null) {
+      toast.error("Invalid chat URL");
+      router.push('/');
+    }
+  }, [authLoading, inspectionId, router]);
+
   // Fetch messages if inspectionId and user are available
   React.useEffect(() => {
     if (inspectionId && user) {
@@ -81,6 +97,10 @@ export default function SlugPage() {
   };
 
   const handleSend = async () => {
+    if (!user) {
+      openSignup();
+      return;
+    }
     if (value.trim() === "" && images.length === 0 || isSending || authLoading) return;
 
     const tempId = uuidv4();
@@ -105,22 +125,6 @@ export default function SlugPage() {
     let currentId = inspectionId;
 
     try {
-      if (!currentId) {
-        // Create a new chat if no inspection ID exists
-        const res = await fetch("/api/chat", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ title: value.slice(0, 50) || "New Chat" }),
-        });
-        if (res.ok) {
-          const { id } = await res.json();
-          currentId = id;
-          setInspectionId(id);
-        } else {
-          throw new Error("Failed to create inspection");
-        }
-      }
-
       const res = await fetch(`/api/chat/messages`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -143,25 +147,29 @@ export default function SlugPage() {
 
         setIsThinking(true);
 
-        // Simulate AI response (echoing the user message)
-        const aiContent = `Echo: ${value} with ${imageUrls.length} images`;
-
-        const aiRes = await fetch(`/api/chat/messages`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            inspectionId: currentId,
-            role: "assistant",
-            content: aiContent,
-            images: [],
-          }),
+        const promptRes = await fetch('/api/chat/prompt', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ inspectionId: currentId }),
         });
 
-        if (aiRes.ok) {
-          const newAiMessage = await aiRes.json();
-          setMessages((prev) => [...prev, newAiMessage]);
+        if (promptRes.ok) {
+          const { content: aiContent } = await promptRes.json();
+
+          const aiRes = await fetch(`/api/chat/messages`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ inspectionId: currentId, role: 'assistant', content: aiContent, images: [] }),
+          });
+
+          if (aiRes.ok) {
+            const newAiMessage = await aiRes.json();
+            setMessages((prev) => [...prev, newAiMessage]);
+          } else {
+            throw new Error('Failed to save AI response');
+          }
         } else {
-          throw new Error("Failed to save AI response");
+          throw new Error('Failed to generate AI response');
         }
       } else {
         throw new Error("Failed to send message");
@@ -176,9 +184,6 @@ export default function SlugPage() {
     } finally {
       setIsSending(false);
       setIsThinking(false);
-      if (!inspectionId && currentId) {
-        router.push(`/c/${currentId}`);
-      }
     }
   };
 

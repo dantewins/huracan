@@ -1,19 +1,36 @@
-//gemini api for gen solutions
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import type { AzureAnalysis, Solution } from '@/types/inspection';
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
 
 export const geminiService = {
+    async extractAddress(history: string): Promise<string | null> {
+        try {
+            const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+
+            const prompt = `Extract the home address from this conversation history if mentioned. Return only the address string or "null" if not found or unclear.
+            History: ${history}
+
+            Address:`;
+
+            const result = await model.generateContent(prompt);
+            const text = (await result.response.text()).trim();
+
+            return text === 'null' ? null : text;
+        } catch (error) {
+            console.error('Gemini API error:', error);
+            return null;
+        }
+    },
+
     async generateSolutions(analysis: AzureAnalysis, context?: string): Promise<string> {
         try {
-            const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-exp' });
+            const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
 
             const prompt = this.buildPrompt(analysis, context);
 
             const result = await model.generateContent(prompt);
-            const response = await result.response;
-            const text = response.text();
+            const text = (await result.response.text());
 
             return text;
         } catch (error) {
@@ -23,7 +40,7 @@ export const geminiService = {
     },
 
     buildPrompt(analysis: AzureAnalysis, context?: string): string {
-        let prompt = `You are a hurricane damage assessment expert. Analyze the following image analysis data and provide actionable solutions for homeowners.Image Analysis Data:`;
+        let prompt = `You are a hurricane damage assessment expert. Analyze the following image analysis data and provide actionable solutions for homeowners. Image    Analysis Data:`;
 
         if (analysis.objects && analysis.objects.length > 0) {
             prompt += `\nDetected Objects:\n`;
@@ -57,7 +74,6 @@ export const geminiService = {
             COST: [Estimated cost range or specific amount]
             TIME: [Estimated time to complete]
             RESOURCES: [Required materials/tools]
-
             Provide 3-5 solutions based on the damage detected. Be specific with costs and timeframes.
         `;
 
@@ -66,11 +82,10 @@ export const geminiService = {
 
     async generateFemaExplanation(disasters: any[], address: string): Promise<string> {
         try {
-            const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-exp' });
+            const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
 
             const prompt = `You are a FEMA assistance expert. Explain the following disaster declarations and available aid programs for the address: ${address}
-
-            Disaster Declarations:
+                Disaster Declarations:
                 ${disasters.map(d => `- ${d.title} (${d.state}) - ${d.declaration_date}`).join('\n')}
 
                 Please provide:
@@ -80,11 +95,11 @@ export const geminiService = {
                 4. Important deadlines and requirements
                 5. Additional resources and contacts
 
-            Format your response in a helpful, easy-to-understand way for homeowners seeking assistance.`;
+                Format your response in a helpful, easy-to-understand way for homeowners seeking assistance.
+            `;
 
             const result = await model.generateContent(prompt);
-            const response = await result.response;
-            const text = response.text();
+            const text = (await result.response.text());
 
             return text;
         } catch (error) {
@@ -110,7 +125,7 @@ export const geminiService = {
                 resources_needed: []
             };
 
-            for (const line of lines) {
+            for (const line of lines.slice(1)) {
                 if (line.match(/^PRIORITY:/i)) {
                     const priority = line.replace(/^PRIORITY:/i, '').trim().toLowerCase();
                     if (priority.includes('high')) solution.priority = 'high';

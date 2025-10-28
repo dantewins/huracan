@@ -1,19 +1,7 @@
-export interface Inspection {
-    id: string;
-    user_id?: string;
-    session_id: string;
-    image_url: string;
-    azure_analysis?: AzureAnalysis;
-    damage_summary?: string;
-    gemini_solutions?: string;
-    created_at: string;
-}
-
 export interface AzureAnalysis {
     objects?: DetectedObject[];
     tags?: Tag[];
     captions?: Caption[];
-    description?: Description;
 }
 
 export interface DetectedObject {
@@ -37,22 +25,10 @@ export interface Caption {
     confidence: number;
 }
 
-export interface Description {
-    tags: string[];
-    captions: Caption[];
-}
-
-export interface DamageReport {
-    severity: 'low' | 'medium' | 'high';
-    issues: string[];
-    confidence: number;
-    summary: string;
-}
-
 export interface Solution {
     title: string;
-    description: string;
     priority: 'low' | 'medium' | 'high';
+    description: string;
     estimated_cost?: string;
     estimated_time?: string;
     resources_needed?: string[];
@@ -67,31 +43,4 @@ export interface FemaDisaster {
     incident_type: string;
     disaster_number: string;
     fy_declared: number;
-}
-
-export interface FemaEligibility {
-    eligible: boolean;
-    disasters: FemaDisaster[];
-    programs: string[];
-    message: string;
-}
-
-export interface GeocodeResult {
-    lat: number;
-    lon: number;
-    display_name: string;
-    address: {
-        house_number?: string;
-        road?: string;
-        city?: string;
-        state?: string;
-        postcode?: string;
-        country?: string;
-    };
-}
-
-export interface SessionData {
-    session_id: string;
-    user_id?: string;
-    created_at: string;
 }
