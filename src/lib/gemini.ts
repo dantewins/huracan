@@ -116,8 +116,14 @@ export const geminiService = {
             const lines = block.split('\n').map(l => l.trim()).filter(l => l);
             if (lines.length === 0) continue;
 
+            let title = lines[0].replace(/^[:\-]\s*/, '').trim();
+            
+            if (title.startsWith('**')) title = title.slice(2);
+            if (title.endsWith('**')) title = title.slice(0, -2);
+            title = title.trim();
+
             const solution: Partial<Solution> = {
-                title: lines[0].replace(/^[:\-]\s*/, ''),
+                title,
                 priority: 'medium',
                 description: '',
                 estimated_cost: undefined,
@@ -150,5 +156,4 @@ export const geminiService = {
 
         return solutions;
     }
-
 };

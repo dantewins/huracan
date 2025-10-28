@@ -136,14 +136,30 @@ export function InputGroup({
             const item = newItems[addIndex];
             uploadToImgBB(file)
                 .then((uploadedUrl) => {
-                    setImages((prev) =>
-                        prev.map((p) =>
-                            p === item
-                                ? { previewUrl: uploadedUrl, isUploading: false }
-                                : p
-                        )
-                    );
-                    URL.revokeObjectURL(item.previewUrl);
+                    // Preload the image to ensure it's ready before switching
+                    const img = new Image();
+                    img.src = uploadedUrl;
+                    img.onload = () => {
+                        setImages((prev) =>
+                            prev.map((p) =>
+                                p === item
+                                    ? { previewUrl: uploadedUrl, isUploading: false }
+                                    : p
+                            )
+                        );
+                        URL.revokeObjectURL(item.previewUrl);
+                    };
+                    img.onerror = () => {
+                        setImages((prev) =>
+                            prev.map((p) =>
+                                p === item
+                                    ? { ...p, isUploading: false, error: 'Failed to load uploaded image' }
+                                    : p
+                            )
+                        );
+                        URL.revokeObjectURL(item.previewUrl);
+                        toast.error(`Failed to load ${file.name} after upload.`);
+                    };
                 })
                 .catch((error) => {
                     setImages((prev) =>
@@ -153,6 +169,7 @@ export function InputGroup({
                                 : p
                         )
                     );
+                    URL.revokeObjectURL(item.previewUrl);
                     toast.error(`Failed to upload ${file.name}: ${error.message}`);
                 });
         });
@@ -274,7 +291,7 @@ export function InputGroup({
                         type="button"
                         onClick={isSending ? handleCancel : handleSend}
                         disabled={authLoading || hasUploadingImages}
-                        className={`h-9 w-9 inline-flex items-center justify-center ${isSending ? 'bg-gray-200' : 'bg-black'} hover:cursor-pointer`}
+                        className={`h-9 w-9 inline-flex items-center ${hasUploadingImages && 'opacity-25' } justify-center ${isSending ? 'bg-gray-200' : 'bg-black'} hover:cursor-pointer`}
                     >
                         {authLoading ? (
                             <Spinner className="h-5 w-5 text-white" />
