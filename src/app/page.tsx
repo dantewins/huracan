@@ -13,7 +13,7 @@ import { ImageModal } from '@/components/chat/ImageModal';
 import { Message, ImageItem } from '@/types/message';
 import { useAuth } from "@/context/AuthContext";
 import { useChats } from '@/context/ChatContext';
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { v4 as uuidv4 } from 'uuid';
 
@@ -27,6 +27,7 @@ export default function MainPage() {
   const { user, loading: authLoading, openSignup } = useAuth();
   const { refresh } = useChats();
   const pathname = usePathname();
+  const router = useRouter();
   const [messages, setMessages] = React.useState<LocalMessage[]>([]);
   const [value, setValue] = React.useState("");
   const [isSending, setIsSending] = React.useState(false);
@@ -41,31 +42,18 @@ export default function MainPage() {
   const effectiveInitial = authLoading || isInitial;
 
   React.useEffect(() => {
-    const idFromUrl = pathname.split('/').pop();
-    if (idFromUrl && user) {
+    const parts = pathname.split('/');
+    const idFromUrl = parts[parts.length - 1] || null;
+    if (idFromUrl && pathname.startsWith('/c/') && user) {
       setInspectionId(idFromUrl);
       fetchMessages(idFromUrl);
+    } else {
+      setInspectionId(null);
+      setMessages([]);
+      setValue("");
+      setImages([]);
     }
   }, [user, pathname]);
-
-  React.useEffect(() => {
-    const handlePopstate = () => {
-      const newPath = window.location.pathname;
-      const newId = newPath.split('/').pop();
-      if (newPath.startsWith('/c/') && newId) {
-        setInspectionId(newId);
-        fetchMessages(newId);
-      } else {
-        setInspectionId(null);
-        setMessages([]);
-        setValue("");
-        setImages([]);
-      }
-    };
-
-    window.addEventListener('popstate', handlePopstate);
-    return () => window.removeEventListener('popstate', handlePopstate);
-  }, []);
 
   const fetchMessages = async (id: string) => {
     try {
@@ -209,7 +197,7 @@ export default function MainPage() {
       setIsThinking(false);
       abortControllerRef.current = null;
       if (wasInitial && currentId) {
-        window.history.pushState({}, '', `/c/${currentId}`);
+        router.push(`/c/${currentId}`);
       }
     }
   };
