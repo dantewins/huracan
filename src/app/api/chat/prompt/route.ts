@@ -10,12 +10,10 @@ export async function POST(req: NextRequest) {
     if (!session?.userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     const { inspectionId } = await req.json();
-
     const messages = await prisma.message.findMany({
         where: { inspectionId },
         orderBy: { createdAt: 'asc' },
     });
-
     if (messages.length === 0) return NextResponse.json({ error: 'No messages' }, { status: 400 });
 
     const latest = messages[messages.length - 1];
@@ -24,9 +22,7 @@ export async function POST(req: NextRequest) {
     const history = messages.map(m => `${m.role.toUpperCase()}: ${m.content}`).join('\n\n');
 
     const address = await geminiService.extractAddress(history);
-
     let state = null;
-
     if (address) {
         const geo = await nominatimService.geocode(address);
         if (geo) {
@@ -34,20 +30,29 @@ export async function POST(req: NextRequest) {
         }
     }
 
-    let analysis = null;
-    let damageSummary = null;
-    let solutionsText = '';
+    let analyses: any[] = [];
+    let damageSummaries: string[] = [];
+    let solutionsTexts: string[] = [];
 
     if (latest.images.length > 0) {
-        const imageUrl = latest.images[0];
-        analysis = await azureVisionService.analyzeImage(imageUrl);
-        damageSummary = azureVisionService.generateDamageSummary(analysis);
-        const context = latest.content;
-        solutionsText = await geminiService.generateSolutions(analysis, context);
+        for (const imageUrl of latest.images) {
+            const analysis = await azureVisionService.analyzeImage(imageUrl);
+            analyses.push(analysis);
+
+            const damageSummary = azureVisionService.generateDamageSummary(analysis);
+            damageSummaries.push(damageSummary);
+
+            const context = latest.content;
+            const solutionsText = await geminiService.generateSolutions(analysis, context);
+            solutionsTexts.push(solutionsText);
+        }
     }
 
-    let femaExplanation = '';
+    const analysisContent = analyses.length > 0 ? analyses : null;
+    const damageSummaryContent = damageSummaries.join('\n\n---\n\n') || null;
+    const solutionsTextContent = solutionsTexts.join('\n\n---\n\n') || '';
 
+    let femaExplanation = '';
     const filter = `incidentType eq 'Hurricane' and declarationDate gt '2025-01-01T00:00:00.000Z'${state ? ` and state eq '${state}'` : ''}`;
     const femaRes = await fetch(`https://www.fema.gov/api/open/v1/DisasterDeclarationsSummaries?$filter=${encodeURIComponent(filter)}&$top=5&$orderby=declarationDate desc`);
     if (femaRes.ok) {
@@ -65,7 +70,6 @@ export async function POST(req: NextRequest) {
         - Suggest practical repair solutions.
         - Guide users on accessing aid from FEMA and other resources.
         - Be empathetic, helpful, and clear.
-
         Behavior guidelines:
         - Always start with a greeting in the first response: "Hello! I'm Hurcan, your AI assistant for post-hurricane recovery."
         - If the user's message is unrelated to house inspection or hurricane damage, politely explain your purpose and ask how you can help with their house.
@@ -74,26 +78,19 @@ export async function POST(req: NextRequest) {
         - Use the provided analysis, summary, solutions, and FEMA info to craft a natural, flowing response.
         - Keep responses concise yet informative.
         - End with a question to continue the conversation, e.g., "Do you have more images or details?" or "What's your home address for more specific aid info?"
-
         Conversation history:
         ${history}
-
         Image analysis:
-        ${analysis ? JSON.stringify(analysis, null, 2) : 'No images provided.'}
-
+        ${analysisContent ? JSON.stringify(analysisContent, null, 2) : 'No images provided.'}
         Damage summary:
-        ${damageSummary || 'No damage analysis available.'}
-
+        ${damageSummaryContent || 'No damage analysis available.'}
         Solutions:
-        ${solutionsText || 'No solutions generated.'}
-
+        ${solutionsTextContent || 'No solutions generated.'}
         FEMA and aid information:
         ${femaExplanation || 'No relevant disaster declarations found.'}
-
         Generate the response as Hurcan. Do not include any prompts or metadata in the output.
     `;
 
-    const aiContent = await geminiService.generateSolutions({} as any, prompt); // Reuse generateContent, but since it's string, adjust if needed; alternatively, add a general generate function.
-
+    const aiContent = await geminiService.generateSolutions({} as any, prompt);
     return NextResponse.json({ content: aiContent });
 }
